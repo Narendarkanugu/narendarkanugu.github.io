@@ -108,7 +108,7 @@ p {
 	line-height: 24px;
 	padding-bottom: 10px;
 	font-weight: 500;
-	color: #878C9F;
+	color: #000;
 	font-family: 'Poppins', sans-serif;
 }
 
@@ -1189,8 +1189,9 @@ p.interact,
 }
 
 .color-btn {
-	color: #fff;
-	border-color: transparent
+    color: #000;
+    border-color: transparent;
+    font-weight: 800;
 }
 
 .btn.color-btn:before {
@@ -2530,11 +2531,10 @@ section.parallax-section .section-title:before {
 .features-box a {
 	float: left;
 	width: 100%;
-	margin-top: 20px;
-
+	margin-top: 20px; 
 	letter-spacing: 2px;
 	font-weight: 800;
-	font-size: 11px;
+	font-size: 16px;
 	position: relative;
 	text-align: left;
 	color: #666;
@@ -2574,7 +2574,7 @@ section.parallax-section .section-title:before {
 	font-size: 18px;
 	padding-bottom: 18px;
 	position: relative;
-	color: #999;
+	color: #7b7b7b;
 }
 
 .features-box h3:before {
