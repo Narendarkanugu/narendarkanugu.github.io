@@ -2,18 +2,19 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'narenkanugu/html-app'
-        CREDENTIALS_ID = 'dockerhub'
+        IMAGE_NAME = 'html-app'
+        DOCKERHUB_REPO = 'narenkanugu/html-app'
+        CREDENTIALS_ID = 'dockerhub'  // must match Jenkins credentials ID
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git 'https://github.com/Narendarkanugu/narendarkanugu.github.io.git'
             }
         }
 
-        stage('Get Git Commit Hash') {
+        stage('Get Commit Hash') {
             steps {
                 script {
                     COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
@@ -24,45 +25,39 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG .'
+                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker tag $IMAGE_NAME $DOCKERHUB_REPO:$IMAGE_TAG'
+                sh 'docker tag $IMAGE_NAME $DOCKERHUB_REPO:latest'
             }
         }
 
         stage('Login to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: "$CREDENTIALS_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: "${CREDENTIALS_ID}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh 'echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin'
                 }
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker push $DOCKER_IMAGE:$IMAGE_TAG'
+                sh 'docker push $DOCKERHUB_REPO:$IMAGE_TAG'
+                sh 'docker push $DOCKERHUB_REPO:latest'
             }
         }
 
-        stage('Tag as latest') {
+        stage('Run Docker Container') {
             steps {
-                sh """
-                docker tag $DOCKER_IMAGE:$IMAGE_TAG $DOCKER_IMAGE:latest
-                docker push $DOCKER_IMAGE:latest
-                """
+                sh '''
+                    docker rm -f html-app || true
+                    docker run -d -p 8085:80 --name html-app $DOCKERHUB_REPO:$IMAGE_TAG
+                '''
             }
         }
 
         stage('Logout Docker') {
             steps {
                 sh 'docker logout'
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                sh """
-                docker rm -f html-app || true
-                docker run -d -p 8085:80 --name html-app $DOCKER_IMAGE:$IMAGE_TAG
-                """
             }
         }
     }
