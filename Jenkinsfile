@@ -50,30 +50,39 @@ pipeline {
     stage('Cleanup Old Images') {
   steps {
     sh '''
-      echo "🧹 Keeping only the 5 most recent html-app Docker images..."
+      echo "🧹 Cleaning up old Docker images for narenkanugu/html-app..."
 
       IMAGE_NAME="narenkanugu/html-app"
 
-      # Get all image IDs sorted by creation time (excluding latest tag)
-      IMAGE_IDS=$(docker images $IMAGE_NAME --format "{{.ID}} {{.Repository}}:{{.Tag}}" | grep -v ":latest" | sort -u | awk '{print $1}')
+      # List all image IDs (excluding 'latest'), sort by creation date DESC
+      IMAGE_IDS=$(docker images --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedAt}}' \
+        | grep "$IMAGE_NAME" \
+        | grep -v ":latest" \
+        | sort -rk3 | awk '{print $2}')
 
-      # Count total images
-      TOTAL=$(echo "$IMAGE_IDS" | wc -l)
+      echo "Found image IDs:"
+      echo "$IMAGE_IDS"
 
-      # Calculate how many to delete
-      DELETE_COUNT=$((TOTAL - 5))
+      # Count how many images exist
+      TOTAL_IMAGES=$(echo "$IMAGE_IDS" | wc -l)
+      echo "Total images: $TOTAL_IMAGES"
+
+      # How many to delete
+      DELETE_COUNT=$((TOTAL_IMAGES - 5))
 
       if [ "$DELETE_COUNT" -gt 0 ]; then
-        echo "Removing $DELETE_COUNT old image(s)..."
-        echo "$IMAGE_IDS" | head -n $DELETE_COUNT | xargs -r docker rmi -f
+        echo "Deleting $DELETE_COUNT old image(s)..."
+        echo "$IMAGE_IDS" | tail -n $DELETE_COUNT | xargs -r docker rmi -f
       else
-        echo "No old images to delete."
+        echo "Nothing to delete. Less than or equal to 5 images exist."
       fi
 
-      echo "✅ Docker cleanup complete."
+      echo "✅ Cleanup complete."
     '''
   }
 }
 
+
+    
   }
 }
