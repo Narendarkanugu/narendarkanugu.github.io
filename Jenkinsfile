@@ -2,33 +2,67 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'html-app'
-        CONTAINER_NAME = 'html-app'
-        PORT = '8085'
+        DOCKER_IMAGE = 'narenkanugu/html-app'
+        CREDENTIALS_ID = 'dockerhub'
     }
 
     stages {
-        stage('Clone Code') {
+        stage('Checkout') {
             steps {
                 git 'https://github.com/Narendarkanugu/narendarkanugu.github.io.git'
             }
         }
 
+        stage('Get Git Commit Hash') {
+            steps {
+                script {
+                    COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    env.IMAGE_TAG = COMMIT_HASH
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t $IMAGE_NAME ."
+                sh 'docker build -t $DOCKER_IMAGE:$IMAGE_TAG .'
             }
         }
 
-        stage('Remove Existing Container') {
+        stage('Login to Docker Hub') {
             steps {
-                sh "docker rm -f $CONTAINER_NAME || true"
+                withCredentials([usernamePassword(credentialsId: "$CREDENTIALS_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh 'echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin'
+                }
             }
         }
 
-        stage('Run Container') {
+        stage('Push to Docker Hub') {
             steps {
-                sh "docker run -d -p $PORT:80 --name $CONTAINER_NAME $IMAGE_NAME"
+                sh 'docker push $DOCKER_IMAGE:$IMAGE_TAG'
+            }
+        }
+
+        stage('Tag as latest') {
+            steps {
+                sh """
+                docker tag $DOCKER_IMAGE:$IMAGE_TAG $DOCKER_IMAGE:latest
+                docker push $DOCKER_IMAGE:latest
+                """
+            }
+        }
+
+        stage('Logout Docker') {
+            steps {
+                sh 'docker logout'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                docker rm -f html-app || true
+                docker run -d -p 8085:80 --name html-app $DOCKER_IMAGE:$IMAGE_TAG
+                """
             }
         }
     }
