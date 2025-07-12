@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'html-app'
+        IMAGE_NAME = 'narenkanugu/html-app'
         DOCKERHUB_REPO = 'narenkanugu/html-app'
         CREDENTIALS_ID = 'dockerhub'  // must match Jenkins credentials ID
     }
