@@ -17,7 +17,7 @@ pipeline {
             steps {
                 script {
                     COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                    env.IMAGE_TAG = COMMIT_HASH
+                    env.IMAGE_TAG = "build-${env.BUILD_NUMBER}"
                 }
             }
         }
